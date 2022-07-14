@@ -28,9 +28,10 @@ def get_all():
     return items
 
 
-@app.get('/item/{item_id}')
+@app.get('/item/{item_id}', response_model=ItemSerializer, status_code=status.HTTP_200_OK)
 def get_item(item_id: int):
-    pass
+    item = db.query(Item).filter(Item.id == item_id).first()
+    return item
 
 
 @app.post('/item-create/', response_model=ItemSerializer, status_code=status.HTTP_201_CREATED)
@@ -42,7 +43,7 @@ def create_item(item: ItemSerializer):
         on_offer=item.on_offer
 
     )
-    db_item = db.query(Item).filter(item.name == new_item.name).first()
+    db_item = db.query(Item).filter(Item.name == item.name).first()
 
     if db_item is not None:
         raise HTTPException(status_code=400, detail='Item already exists')
@@ -52,11 +53,27 @@ def create_item(item: ItemSerializer):
     return new_item
 
 
-@app.delete('item-delete/{item_id}')
+@app.delete('/item-delete/{item_id}')
 def delete_item(item_id: int):
-    pass
+    item_to_delete = db.query(Item).filter(Item.id == item_id).first()
+
+    if item_to_delete is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Resource not found')
+
+    db.delete(item_to_delete)
+    db.commit()
+
+    return item_to_delete
 
 
-@app.put('item-update/{item_id}')
-def update_item(item_id):
-    pass
+@app.put('/item-update/{item_id}', response_model=ItemSerializer, status_code=status.HTTP_200_OK)
+def update_item(item_id: int, item: ItemSerializer):
+    item_to_update = db.query(Item).filter(Item.id == item_id).first()
+    item_to_update.name = item.name
+    item_to_update.description = item.description
+    item_to_update.price = item.price
+    item_to_update.on_offer = item.on_offer
+
+    db.commit()
+
+    return item_to_update
